@@ -1,0 +1,115 @@
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:16-alpine
+    container_name: finance-postgres
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${POSTGRES_DB:-finance_db}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - finance-network
+
+  # Redis Cache
+  redis:
+    image: redis:7-alpine
+    container_name: finance-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    networks:
+      - finance-network
+
+  # Identity Service
+  identity:
+    build:
+      context: .
+      dockerfile: identity/Dockerfile
+    container_name: finance-identity
+    environment:
+      NODE_ENV: production
+      PORT: 3001
+      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-finance_db}?schema=identity
+      AUTH_SECRET: ${AUTH_SECRET:-your-secret-key-change-in-production-must-be-at-least-32-characters}
+      JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-3600}
+    ports:
+      - "3001:3001"
+    command: sh -c "npx prisma migrate deploy && node server.js"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - finance-network
+    restart: unless-stopped
+
+  # Finance Service
+  finance:
+    build:
+      context: .
+      dockerfile: finance/Dockerfile
+    container_name: finance-service
+    environment:
+      NODE_ENV: production
+      PORT: 4001
+      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-finance_db}?schema=finance
+      REDIS_URL: redis://redis:6379
+      REDIS_ENABLED: ${REDIS_ENABLED:-true}
+      AUTH_SECRET: ${AUTH_SECRET:-your-secret-key-change-in-production-must-be-at-least-32-characters}
+    ports:
+      - "4001:4001"
+    command: sh -c "npx prisma migrate deploy && node server.js"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - finance-network
+    restart: unless-stopped
+
+  # Reports Service
+  reports:
+    build:
+      context: .
+      dockerfile: reports/Dockerfile
+    container_name: finance-reports
+    environment:
+      NODE_ENV: production
+      PORT: 5001
+      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-finance_db}?schema=reports
+      AUTH_SECRET: ${AUTH_SECRET:-your-secret-key-change-in-production-must-be-at-least-32-characters}
+      FINANCE_BASE_URL: http://finance:4001
+    ports:
+      - "5001:5001"
+    command: sh -c "npx prisma migrate deploy && node server.js"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      finance:
+        condition: service_healthy
+    networks:
+      - finance-network
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  redis_data:
+
+networks:
+  finance-network:
+    driver: bridge
