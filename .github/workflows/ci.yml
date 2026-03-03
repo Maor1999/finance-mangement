@@ -45,4 +45,5 @@ jobs:
         run: npx prisma generate
 
       - name: Build Docker image
-        run: docker build -f Dockerfile .
+        working-directory: .
+        run: docker build -f ${{ matrix.service }}/Dockerfile .
