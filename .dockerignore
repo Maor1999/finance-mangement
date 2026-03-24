@@ -34,16 +34,17 @@ coverage
 # Build outputs
 dist
 build
+target
 *.map
-
-# Docker
-Dockerfile
-docker-compose.yml
-.dockerignore
 
 # Documentation
 README.md
 *.md
+
+# Service local dependencies
+identity/node_modules
+finance/node_modules
+reports/node_modules
 
 # Prisma migrations (keep schema, exclude migrations in build)
 # Uncomment if you want to exclude migrations

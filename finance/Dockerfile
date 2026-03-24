@@ -1,31 +1,21 @@
-# Use Node.js LTS version as base image
-FROM node:20-alpine
-
-# Set working directory
+# Dependency stage
+FROM node:20-alpine AS deps
 WORKDIR /app
-
-# Copy package files
 COPY finance/package*.json ./
-
-# Install dependencies (include Prisma CLI for migrate/generate in container startup)
-RUN npm ci
-
-# Copy Prisma schema
+RUN npm ci --omit=dev && npm install prisma --no-save && npm cache clean --force
 COPY finance/prisma ./prisma
-
-# Generate Prisma Client
 RUN npx prisma generate
 
-# Copy application code + shared utilities used by finance
+# Runtime stage
+FROM node:20-alpine
+WORKDIR /app
+ENV NODE_ENV=production
+COPY --from=deps /app/node_modules ./node_modules
+COPY --from=deps /app/prisma ./prisma
 COPY finance/. .
 COPY shared /shared
 
-# Expose port
 EXPOSE 4001
-
-# Health check
 HEALTHCHECK --interval=30s --timeout=3s --start-period=40s --retries=3 \
   CMD node -e "require('http').get('http://localhost:4001/health', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"
-
-# Start the application
 CMD ["node", "server.js"]
