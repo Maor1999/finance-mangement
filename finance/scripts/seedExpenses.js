@@ -11,64 +11,50 @@ const getRandomAmount = (min, max) => {
   return (cents / 100).toFixed(2); 
 };
 
-const FIXED_DATE = new Date("2025-01-01T00:00:00.000Z");
+const EXPENSE_TEMPLATES = [
+  { title: "Rent", category: "RENT", min: 1700, max: 3000 },
+  { title: "Food", category: "FOOD", min: 700, max: 1500 },
+  { title: "Arnona", category: "ARNONA", min: 100, max: 300 },
+  { title: "Gym membership", category: "OTHER", min: 200, max: 800 },
+  { title: "Clothes", category: "OTHER", min: 200, max: 800 },
+  { title: "Transportation", category: "OTHER", min: 100, max: 500 },
+  { title: "Electricity", category: "OTHER", min: 100, max: 400 },
+  { title: "Internet", category: "OTHER", min: 50, max: 200 },
+  { title: "Phone", category: "OTHER", min: 50, max: 200 },
+  { title: "Health insurance", category: "OTHER", min: 200, max: 600 },
+  { title: "Entertainment", category: "OTHER", min: 100, max: 500 },
+  { title: "Dining out", category: "FOOD", min: 200, max: 800 },
+  { title: "Groceries", category: "FOOD", min: 300, max: 700 },
+  { title: "Cleaning supplies", category: "OTHER", min: 50, max: 200 },
+  { title: "Haircut", category: "OTHER", min: 50, max: 200 },
+  { title: "Books", category: "OTHER", min: 50, max: 300 },
+  { title: "Subscriptions", category: "OTHER", min: 50, max: 200 },
+  { title: "Medical", category: "OTHER", min: 100, max: 500 },
+  { title: "Parking", category: "OTHER", min: 100, max: 400 },
+  { title: "Miscellaneous", category: "OTHER", min: 50, max: 300 },
+];
 
 const buildExpensesForUser = (userIndex) => {
-const userId = `user${userIndex}`; 
+  const userId = `user${userIndex}`;
 
-const rentExpense = {
-    userId,
-    title: "Rent",
-    category: "RENT",
-    amount: getRandomAmount(1700, 3000), 
-    date: FIXED_DATE,
-};
-
-const foodExpense = {
-    userId,
-    title: "Food",
-    category: "FOOD",
-    amount: getRandomAmount(700, 1500), 
-    date: FIXED_DATE,
-  };
-
-const arnonaExpense = {
-    userId,
-    title: "Arnona",
-    category: "ARNONA",
-    amount: getRandomAmount(100, 300), 
-    date: FIXED_DATE,
-};
-
-const gymExpense = {
-    userId,
-    title: "Gym membership",
-    category: "OTHER",
-    amount: getRandomAmount(200, 800),
-    date: FIXED_DATE,
-};
-
-const clothesExpense = {
-    userId,
-    title: "Clothes",
-    category: "OTHER",
-    amount: getRandomAmount(200, 800),
-    date: FIXED_DATE,
-};
-
-return [rentExpense, foodExpense, arnonaExpense, gymExpense, clothesExpense];
+  return Array.from({ length: 12 }, (_, month) =>
+    Array.from({ length: 10 }, () =>
+      EXPENSE_TEMPLATES.map((template) => ({
+        userId,
+        title: template.title,
+        category: template.category,
+        amount: getRandomAmount(template.min, template.max),
+        date: new Date(2025, month, getRandomInt(1, 28)),
+      }))
+    ).flat()
+  ).flat();
 };
 
 const main = async () => {
 await prisma.expense.deleteMany({});
 console.log("Cleared existing expenses");
 
-const allExpenses = [];
-
-for (let i = 1; i <= 100; i++) {
-const userExpenses = buildExpensesForUser(i);
-allExpenses.push(...userExpenses);
-}
+const allExpenses = Array.from({ length: 100 }, (_, i) => buildExpensesForUser(i + 1)).flat();
 
 const result = await prisma.expense.createMany({
 data: allExpenses,
