@@ -1,53 +1,95 @@
+import { zodError } from "../shared/zodError.js";
+import { prismaError } from "../shared/prismaError.js";
+
 const errorHandler = (err, req, res, next) => {
-if (err?.name === "ZodError" && Array.isArray(err?.issues)) {
-return res.status(400).json({ ok: false, error: err.issues });
-}
+    const z = zodError(err);
+    if (z) {
+        return res.status(z.status).json({
+            success: false,
+            errors: {
+                message: z.message,
+                code: z.code,
+                details: z.details
+            }
+        });
+    }
 
-if (err?.errors) {
-return res.status(400).json({ ok: false, error: err.errors });
-}
+    const p = prismaError(err);
+    if (p) {
+        return res.status(p.status).json({
+            success: false,
+            errors: {
+                code: p.code,
+                message: p.message,
+                details: p.details
+            }
+        });
+    }
 
-if (err?.message === "Email already exists") {
-return res.status(409).json({ ok: false, error: err.message });
-}
+    if (err?.message === "Email already exists") {
+        return res.status(409).json({
+            success: false,
+            errors: { code: "EMAIL_CONFLICT", message: err.message }
+        });
+    }
 
-if (err?.message === "Invalid credentials") {
-return res.status(401).json({ ok: false, error: err.message });
-}
+    if (err?.message === "Invalid credentials") {
+        return res.status(401).json({
+            success: false,
+            errors: { code: "INVALID_CREDENTIALS", message: err.message }
+        });
+    }
 
-if (err?.message?.startsWith("JWTExpired:")) {
-return res.status(401).json({ ok: false, error: "Token has expired" });
-}
+    if (err?.message?.startsWith("JWTExpired:")) {
+        return res.status(401).json({
+            success: false,
+            errors: { code: "TOKEN_EXPIRED", message: "Token has expired" }
+        });
+    }
 
-if (err?.message?.startsWith("JWTInvalid:")) {
-return res.status(401).json({ ok: false, error: "Invalid token" });
-}
+    if (err?.message?.startsWith("JWTInvalid:")) {
+        return res.status(401).json({
+            success: false,
+            errors: { code: "TOKEN_INVALID", message: "Invalid token" }
+        });
+    }
 
-if (err?.message?.startsWith("JWTUnknownError:")) {
-return res.status(401).json({ ok: false, error: "Token verification failed" });
-}
+    if (err?.message?.startsWith("JWTUnknownError:")) {
+        return res.status(401).json({
+            success: false,
+            errors: { code: "TOKEN_ERROR", message: "Token verification failed" }
+        });
+    }
 
-if (err?.message?.startsWith("VerifyError:")) {
-return res.status(401).json({ ok: false, error: "Invalid token format" });
-}
+    if (err?.message?.startsWith("VerifyError:")) {
+        return res.status(401).json({
+            success: false,
+            errors: { code: "TOKEN_INVALID", message: "Invalid token format" }
+        });
+    }
 
-if (err?.message?.startsWith("SignError:")) {
-return res.status(500).json({ ok: false, error: "Failed to generate token" });
-}
+    if (err?.message?.startsWith("SignError:")) {
+        return res.status(500).json({
+            success: false,
+            errors: { code: "TOKEN_SIGN_ERROR", message: "Failed to generate token" }
+        });
+    }
 
-if (err?.message?.startsWith("ConfigError:")) {
-return res.status(500).json({ ok: false, error: "Server configuration error" });
-}
+    if (err?.message?.startsWith("ConfigError:")) {
+        return res.status(500).json({
+            success: false,
+            errors: { code: "CONFIG_ERROR", message: "Server configuration error" }
+        });
+    }
 
-if (err?.code === "P2002") {
-return res.status(409).json({ ok: false, error: "Duplicate entry" });
-}
-
-if (err?.code?.startsWith("P")) {
-return res.status(500).json({ ok: false, error: "Database error" });
-}
-
-return res.status(500).json({ ok: false, error: "Internal server error" });
+    console.error("Unhandled error:", err);
+    return res.status(500).json({
+        success: false,
+        errors: {
+            code: "INTERNAL_ERROR",
+            message: err.message || "Something went wrong"
+        }
+    });
 };
 
-export default errorHandler;
+export { errorHandler };

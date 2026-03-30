@@ -1,7 +1,7 @@
 import "dotenv/config";
 import authRoutes from "./routes/authRoutes.js";
 import express from "express";
-import errorHandler  from "./errorHandler.js";
+import { errorHandler } from "./errorHandler.js";
 
 const app = express();
 app.use(express.json());
