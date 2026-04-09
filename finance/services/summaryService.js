@@ -120,6 +120,7 @@ const safeSetCache = async (key, value, ttlSeconds) => {
   try {
     await saveToCache(key, value, ttlSeconds);
   } catch (err) {
+      console.warn("Failed to save cache", err);
   }
 };
 

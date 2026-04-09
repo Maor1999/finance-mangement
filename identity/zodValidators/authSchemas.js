@@ -11,4 +11,8 @@ const addLoginSchema = z.object({
     password: z.string().min(8, 'password must be at least 8 characters long'),
 });
 
-export { addRegisterSchema, addLoginSchema };
+const refreshTokenSchema = z.object({
+    refreshToken: z.string().min(1, 'refreshToken is required'),
+});
+
+export { addRegisterSchema, addLoginSchema, refreshTokenSchema };

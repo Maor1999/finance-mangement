@@ -1,4 +1,4 @@
-import jwt from "jsonwebtoken";
+import { verifyAccessToken } from "../services/tokenService.js";
 
 const auth = (req, res, next) => {
   try {
@@ -27,23 +27,7 @@ const auth = (req, res, next) => {
       return next(err);
     }
 
-    const secret = process.env.AUTH_SECRET;
-    if (!secret) {
-      const err = new Error("AUTH_SECRET is not configured");
-      err.status = 500;
-      err.code = "AUTH_MISCONFIGURED_SECRET";
-      return next(err);
-    }
-
-    let payload;
-    try {
-      payload = jwt.verify(token, secret);
-    } catch (e) {
-      const err = new Error("Invalid or expired token");
-      err.status = 401;
-      err.code = "AUTH_INVALID_TOKEN";
-      return next(err);
-    }
+    const payload = verifyAccessToken(token);
 
     if (!payload.sub || !payload.email) {
       const err = new Error("Invalid token payload");

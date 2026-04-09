@@ -1,6 +1,7 @@
 import { Router } from "express";
-import { auth } from "../middlewares/auth.js";
+import { auth, requireRole } from "../middlewares/auth.js";
 import { validate, validateQuery, validateParams} from "../middlewares/validate.js";
+import { writeLimiter } from "../middlewares/rateLimiter.js";
 import {
 createExpenseSchema,
 updateExpenseSchema,
@@ -14,13 +15,14 @@ getExpenseForUser,
 updateExpenseForUser,
 deleteExpenseForUser,
 } from "../services/expenseService.js";
+import { listAllExpenses } from "../dataAccessDb/expenseData.js";
+import { formatMoney } from "../utils/formatters.js";
 
 const expenseRoutes = Router();
 
-const formatMoney2 = (value) => Number(value).toFixed(2);
 const formatExpense = (expense) => ({
     ...expense,
-    amount: formatMoney2(expense.amount),
+    amount: formatMoney(expense.amount),
 });
 
 const postExpense = async (req, res, next) => {
@@ -85,15 +87,29 @@ const deleteExpense = async (req, res, next) => {
     });
 };
 
+const getAllExpensesAdmin = async (req, res, next) => {
+    const { from, to, skip, take } = req.validatedQuery;
+    const expenses = await listAllExpenses({ from, to, skip, take });
+    res.status(200).json({
+        success: true,
+        message: "all expenses fetched successfully",
+        data: expenses.map(formatExpense),
+    });
+};
+
+expenseRoutes
+.route("/admin")
+.get(auth, requireRole("ADMIN"), validateQuery(listExpensesQuerySchema), getAllExpensesAdmin);
+
 expenseRoutes
 .route("/")
-.post(auth, validate(createExpenseSchema), postExpense)
+.post(auth, writeLimiter, validate(createExpenseSchema), postExpense)
 .get(auth, validateQuery(listExpensesQuerySchema), getListExpense);
 
 expenseRoutes
 .route("/:expenseId")
 .get(auth, validateParams(expenseIdParamsSchema), getOneExpense)
-.patch(auth, validateParams(expenseIdParamsSchema), validate(updateExpenseSchema), updateExpense)
-.delete(auth, validateParams(expenseIdParamsSchema), deleteExpense);
+.patch(auth, writeLimiter, validateParams(expenseIdParamsSchema), validate(updateExpenseSchema), updateExpense)
+.delete(auth, writeLimiter, validateParams(expenseIdParamsSchema), deleteExpense);
 
 export { expenseRoutes };

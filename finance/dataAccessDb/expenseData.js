@@ -51,10 +51,25 @@ const deleteExpense = async (id) => {
   });
 }
   
+const listAllExpenses = async ({ from, to, skip = 0, take = 50 } = {}) => {
+  const dateFilter =
+    from || to
+      ? { date: { ...(from ? { gte: from } : {}), ...(to ? { lte: to } : {}) } }
+      : {};
+
+  return prisma.expense.findMany({
+    where: { ...dateFilter },
+    orderBy: { date: "desc" },
+    skip,
+    take,
+  });
+};
+
 export {
   createExpense,
   getExpenseById,
   listExpensesByUser,
+  listAllExpenses,
   updateExpense,
   deleteExpense,
 };

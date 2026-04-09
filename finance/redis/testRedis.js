@@ -8,7 +8,7 @@ console.log("Redis is working:", value);
 } catch (err) {
 console.error("Redis connection failed:", err);
 }finally {
-redis.disconnect();
+if (redis) redis.disconnect();
 }
 }
 

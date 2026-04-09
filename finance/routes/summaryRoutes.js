@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { auth } from "../middlewares/auth.js";
 import { validateParams } from "../middlewares/validate.js";
+import { summaryLimiter } from "../middlewares/rateLimiter.js";
 import { monthlySummaryParamsSchema } from "../zodSchema/summarySchemas.js";
 import { getMonthlySummaryForUser } from "../services/summaryService.js";
 
@@ -18,7 +19,7 @@ const getMonthlySummary = async (req, res, next) => {
   });
 };
 
-summaryRoutes.get("/summary/:year/:month", auth,
+summaryRoutes.get("/summary/:year/:month", auth, summaryLimiter,
 validateParams(monthlySummaryParamsSchema), getMonthlySummary);
 
 export { summaryRoutes };

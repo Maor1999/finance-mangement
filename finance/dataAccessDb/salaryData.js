@@ -48,10 +48,25 @@ const deleteSalary = async (id) => {
   });
 }
 
+const listAllSalaries = async ({ from, to, skip = 0, take = 50 } = {}) => {
+  const dateFilter =
+    from || to
+      ? { date: { ...(from ? { gte: from } : {}), ...(to ? { lte: to } : {}) } }
+      : {};
+
+  return prisma.salary.findMany({
+    where: { ...dateFilter },
+    orderBy: { date: "desc" },
+    skip,
+    take,
+  });
+};
+
 export {
   createSalary,
   getSalaryById,
   listSalariesByUser,
+  listAllSalaries,
   updateSalary,
   deleteSalary,
 };

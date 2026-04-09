@@ -29,8 +29,7 @@ const saveToCache = async (key, value, ttlInSeconds) => {
         return null;
     }
     const jsonString = JSON.stringify(value);
-    await redis.set(key, jsonString);
-    await redis.expire(key, ttlInSeconds);
+    await redis.set(key, jsonString, 'EX', ttlInSeconds);
 };
 
 const clearMonthlySummary = async (userId, year, month) => {

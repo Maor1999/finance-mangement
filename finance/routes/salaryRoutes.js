@@ -1,5 +1,6 @@
 import {Router} from "express";
-import { auth } from "../middlewares/auth.js";
+import { auth, requireRole } from "../middlewares/auth.js";
+import { writeLimiter } from "../middlewares/rateLimiter.js";
 
 import {
 createSalaryForUser,
@@ -8,6 +9,7 @@ getSalaryForUser,
 updateSalaryForUser,
 deleteSalaryForUser,
 }from "../services/salaryService.js";
+import { listAllSalaries } from "../dataAccessDb/salaryData.js";
 
 import {
 createSalarySchema,
@@ -21,13 +23,13 @@ validate,
 validateQuery,
 validateParams,
 }from "../middlewares/validate.js";
+import { formatMoney } from "../utils/formatters.js";
 
 const salaryRoutes = Router();
 
-const formatMoney2 = (value) => Number(value).toFixed(2);
 const formatSalary = (salary) => ({
   ...salary,
-  amount: formatMoney2(salary.amount),
+  amount: formatMoney(salary.amount),
 });
 
 const postSalary = async (req, res, next) => {
@@ -92,9 +94,23 @@ const deleteSalary = async(req, res, next) =>{
   });
 };
 
+const getAllSalariesAdmin = async (req, res, next) => {
+  const { from, to, skip, take } = req.validatedQuery;
+  const salaries = await listAllSalaries({ from, to, skip, take });
+  res.status(200).json({
+    success: true,
+    message: "all salaries fetched successfully",
+    data: salaries.map(formatSalary),
+  });
+};
+
+salaryRoutes
+.route("/admin")
+.get(auth, requireRole("ADMIN"), validateQuery(listSalariesQuerySchema), getAllSalariesAdmin);
+
 salaryRoutes
 .route("/")
-.post(auth, validate(createSalarySchema),
+.post(auth, writeLimiter, validate(createSalarySchema),
 postSalary)
 
 .get(auth, validateQuery(listSalariesQuerySchema),
@@ -105,10 +121,10 @@ salaryRoutes
 .get(auth, validateParams(salaryIdParamsSchema),
 getOneSalary)
 
-.patch(auth, validateParams(salaryIdParamsSchema), validate(updateSalarySchema),
+.patch(auth, writeLimiter, validateParams(salaryIdParamsSchema), validate(updateSalarySchema),
 updateSalary)
 
-.delete(auth, validateParams(salaryIdParamsSchema),
+.delete(auth, writeLimiter, validateParams(salaryIdParamsSchema),
 deleteSalary)
 
 export { salaryRoutes };

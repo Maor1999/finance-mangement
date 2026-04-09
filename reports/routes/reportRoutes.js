@@ -4,6 +4,7 @@ import {auth} from "../middlewares/auth.js";
 import {validateParams} from "../middlewares/validate.js";
 import {reportSchema} from "../zodSchema/reportSchemas.js";
 import {asyncHandler} from "../middlewares/asyncHandler.js";
+import {reportLimiter} from "../middlewares/rateLimiter.js";
 
 const reportRoute = Router();
 
@@ -17,8 +18,9 @@ const getUserReport = async(req, res) =>{
 
 reportRoute.get(
 "/:year/:month",
-validateParams(reportSchema),
 auth,
+reportLimiter,
+validateParams(reportSchema),
 asyncHandler(getUserReport));
 
 export default reportRoute; 
