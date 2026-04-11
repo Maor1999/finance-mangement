@@ -2,10 +2,14 @@ import "dotenv/config";
 import authRoutes from "./routes/authRoutes.js";
 import adminRouter from "./routes/adminRoutes.js";
 import express from "express";
+import helmet from "helmet";
 import { errorHandler } from "./errorHandler.js";
 
 const app = express();
-app.use(express.json());
+
+app.use(helmet());
+
+app.use(express.json({ limit: "10kb" }));
 
 app.use('/auth', authRoutes);
 app.use('/admin', adminRouter);
