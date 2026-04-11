@@ -29,7 +29,7 @@ if (!Number.isFinite(refreshExpSeconds) || refreshExpSeconds <= 0) {
   );
 }
 
-function signAccessToken(user) {
+const signAccessToken = (user) => {
   if (!user?.id || !user?.email) {
     throw new Error("SignError: user.id and user.email are required.");
   }
@@ -46,9 +46,9 @@ function signAccessToken(user) {
   } catch (err) {
     throw new Error(`SignError: failed to sign access token. ${err?.message || err}`);
   }
-}
+};
 
-function signRefreshToken(user) {
+const signRefreshToken = (user) => {
   if (!user?.id || !user?.email) {
     throw new Error("SignError: user.id and user.email are required.");
   }
@@ -64,9 +64,9 @@ function signRefreshToken(user) {
   } catch (err) {
     throw new Error(`SignError: failed to sign refresh token. ${err?.message || err}`);
   }
-}
+};
 
-function verifyAccessToken(token) {
+const verifyAccessToken = (token) => {
   if (!token || typeof token !== "string") {
     throw new Error("VerifyError: token must be a non-empty string.");
   }
@@ -79,9 +79,9 @@ function verifyAccessToken(token) {
       throw new Error("JWTInvalid: invalid access token or signature.");
     throw new Error(`JWTUnknownError: ${err?.message || err}`);
   }
-}
+};
 
-function verifyRefreshToken(token) {
+const verifyRefreshToken = (token) => {
   if (!token || typeof token !== "string") {
     throw new Error("VerifyError: token must be a non-empty string.");
   }
@@ -94,7 +94,7 @@ function verifyRefreshToken(token) {
       throw new Error("RefreshTokenInvalid: invalid refresh token or signature.");
     throw new Error(`JWTUnknownError: ${err?.message || err}`);
   }
-}
+};
 
 // Keep signToken/verifyToken as aliases for access token (backwards compat with shared/auth.js)
 const signToken = signAccessToken;

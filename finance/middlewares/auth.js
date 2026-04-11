@@ -1,6 +1,6 @@
 import jwt from "jsonwebtoken";
 
-const auth = (req, res, next) => {
+const auth = (req, _res, next) => {
   try {
     const authHeader = req.headers.authorization;
 
@@ -65,7 +65,7 @@ const auth = (req, res, next) => {
   }
 };
 
-const requireRole = (...roles) => (req, res, next) => {
+const requireRole = (...roles) => (req, _res, next) => {
   if (!roles.includes(req.user?.role)) {
     const err = new Error("Forbidden");
     err.status = 403;
