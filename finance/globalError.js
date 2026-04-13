@@ -1,5 +1,6 @@
 import { zodError } from "../shared/zodError.js";
 import { prismaError } from "../shared/prismaError.js";
+import { logger } from "./logger.js";
 
 const globalError = (err, req, res, next) => {
     const z = zodError(err);
@@ -35,7 +36,7 @@ const globalError = (err, req, res, next) => {
         });
     }
 
-        console.error("Unhandled error:", err);
+        (req.log ?? logger).error({ err }, "Unhandled error");
         return res.status(500).json({
         success: false,
         errors: {

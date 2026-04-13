@@ -1,4 +1,4 @@
-const fetchMonthlySummaryFromFinance = async (token, year, month) => {
+const fetchMonthlySummaryFromFinance = async (token, year, month, requestId) => {
   const baseUrl = process.env.FINANCE_BASE_URL;
   if (!baseUrl) {
     const err = new Error("FINANCE_BASE_URL is not set");
@@ -13,6 +13,7 @@ const fetchMonthlySummaryFromFinance = async (token, year, month) => {
     headers: {
       Authorization: `Bearer ${token}`,
       Accept: "application/json",
+      ...(requestId && { "x-request-id": requestId }),
     },
   });
 

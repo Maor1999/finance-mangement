@@ -5,42 +5,47 @@ import { globalError } from "./globalError.js";
 import { expenseRoutes } from "./routes/expenseRoutes.js";
 import { summaryRoutes } from "./routes/summaryRoutes.js";
 import { salaryRoutes } from "./routes/salaryRoutes.js";
+import { logger } from "./logger.js";
+import { requestId } from "../shared/logger/requestId.js";
+import { createRequestLogger } from "../shared/logger/requestLogger.js";
 
 const app = express();
 const PORT = process.env.PORT || 4001;
 
 app.use(express.json());
+app.use(requestId);
+app.use(createRequestLogger(logger));
 
 app.use('/expenses', expenseRoutes);
 app.use('/', summaryRoutes);
 app.use("/salaries", salaryRoutes);
 
 app.get('/health', (req, res) => {
-res.status(200).send('ok');
+  res.status(200).send('ok');
 });
 
 app.use(globalError);
 
 const initRedis = async () => {
-if (process.env.REDIS_ENABLED !== "true") {
-console.log("Redis disabled via .env");
-return;
-}
-
-if (!redis) {
-    console.log("Redis client is not initialized");
+  if (process.env.REDIS_ENABLED !== "true") {
+    logger.info("Redis disabled via .env");
     return;
-}
+  }
 
-try {
-const pong = await redis.ping();
-console.log("Redis connected:", pong);
-} catch (err) {
-console.warn("Redis connection failed:", err.message);
-}
+  if (!redis) {
+    logger.warn("Redis client is not initialized");
+    return;
+  }
+
+  try {
+    const pong = await redis.ping();
+    logger.info({ pong }, "Redis connected");
+  } catch (err) {
+    logger.warn({ err: err.message }, "Redis connection failed");
+  }
 };
 
 app.listen(PORT, async () => {
-console.log(`Finance service listening on port ${PORT}`);
-await initRedis();
+  logger.info(`Finance service listening on port ${PORT}`);
+  await initRedis();
 });

@@ -10,8 +10,8 @@ from "../integrations/financeIntegration.js";
 import {calculateMonthlyReport}
 from "../calculations/monthlyReportCalculator.js"
 
-const userReport = async(userId, year, month, token) =>{
-    const summary = await fetchMonthlySummaryFromFinance(token, year, month);
+const userReport = async(userId, year, month, token, requestId) =>{
+    const summary = await fetchMonthlySummaryFromFinance(token, year, month, requestId);
     const {salaryTotal, expenseTotal, byCategory} = summary;
     const calculatedReport = calculateMonthlyReport({
         salaryTotal,

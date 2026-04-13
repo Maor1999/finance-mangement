@@ -12,7 +12,7 @@ const getUserReport = async(req, res) =>{
     const {year, month} = req.validatedParams;
     const {userId, token} = req.user;
 
-    const report = await userReport(userId, year, month, token);
+    const report = await userReport(userId, year, month, token, req.id);
     return res.status(200).json(report);
 }
 

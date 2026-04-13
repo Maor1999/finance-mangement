@@ -10,7 +10,7 @@ const summaryRoutes = Router();
 const getMonthlySummary = async (req, res, next) => {
   const userId = req.user.userId;
   const { year, month } = req.validatedParams;
-  const summary = await getMonthlySummaryForUser(userId, year, month);
+  const summary = await getMonthlySummaryForUser(userId, year, month, req.log);
 
   res.status(200).json({
     success: true,

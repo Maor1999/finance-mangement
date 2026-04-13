@@ -116,11 +116,11 @@ const safeGetCache = async (key) => {
   }
 };
 
-const safeSetCache = async (key, value, ttlSeconds) => {
+const safeSetCache = async (key, value, ttlSeconds, log) => {
   try {
     await saveToCache(key, value, ttlSeconds);
   } catch (err) {
-      console.warn("Failed to save cache", err);
+    log.warn({ err: err.message }, "Failed to save summary to cache");
   }
 };
 
@@ -196,12 +196,17 @@ const accumulateSalaries = async ({ userId, from, to }) => {
   return { salaryTotalCents: totalCents };
 };
 
-const getMonthlySummaryForUser = async (userId, year, month) => {
+const getMonthlySummaryForUser = async (userId, year, month, log) => {
   assertYearMonth(year, month);
 
   const key = buildSummaryKey(userId, year, month);
   const cached = await safeGetCache(key);
-  if (cached) return cached;
+  if (cached) {
+    log.info({ key }, "summary cache hit");
+    return cached;
+  }
+
+  log.info({ key }, "summary cache miss, querying DB");
 
   const { from, to } = monthRangeAsiaJerusalemAsUtc(year, month);
 
@@ -221,7 +226,7 @@ const getMonthlySummaryForUser = async (userId, year, month) => {
     byCategory: expAgg.byCategory,
   };
 
-  await safeSetCache(key, result, getSummaryCacheTtlSeconds());
+  await safeSetCache(key, result, getSummaryCacheTtlSeconds(), log);
   return result;
 };
 
