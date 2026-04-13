@@ -34,8 +34,8 @@ reports (5001)
 
 ## Key Rules
 
-- Each service owns its own database.
-- No service reads another service's database directly.
+- Each service owns its own PostgreSQL schema, enforcing data ownership boundaries within a shared instance.
+- No service reads another service's schema directly.
 - identity, finance, and reports use the same AUTH_SECRET in this MVP.
 - reports depends on finance through FINANCE_BASE_URL.
 - Redis is used only by finance for summary caching.
@@ -224,7 +224,7 @@ curl http://localhost:4001/summary/2026/2 \
 
 ## Key Design Decisions
 
-- **Database per service** — keeps service boundaries explicit.
+- **Schema per service** — each service owns a separate PostgreSQL schema within a shared instance, keeping data ownership boundaries explicit.
 - **Shared JWT secret** — simplifies local auth verification for the MVP.
 - **Redis only in finance** — keeps caching close to the aggregation hotspot.
 - **Persisted reports** — provide a stable monthly snapshot instead of recomputing every read.
