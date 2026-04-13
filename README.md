@@ -1,13 +1,16 @@
 # Finance Management Microservices
 
-A learning-focused microservices project for personal finance management. The system is split into isolated services with JWT-based authentication, Redis-backed caching, and synchronous inter-service communication.
+A learning-focused microservices project for personal finance management.
+The system is split into isolated services with JWT-based authentication,
+Redis-backed caching, and synchronous inter-service communication.
 
 ## Overview
 
 The project contains three services:
 
 - `identity` - register/login users and issue JWT tokens
-- `finance` - manage expenses and salaries, expose monthly summaries, cache summary results in Redis
+- `finance` - manage expenses and salaries, expose monthly summaries,
+  cache summary results in Redis
 - `reports` - generate and persist monthly reports based on data fetched from `finance`
 
 ## Architecture Flow
@@ -34,7 +37,8 @@ reports (5001)
 
 ## Key Rules
 
-- Each service owns its own PostgreSQL schema, enforcing data ownership boundaries within a shared instance.
+- Each service owns its own PostgreSQL schema, enforcing data ownership
+  boundaries within a shared instance.
 - No service reads another service's schema directly.
 - identity, finance, and reports use the same AUTH_SECRET in this MVP.
 - reports depends on finance through FINANCE_BASE_URL.
@@ -45,7 +49,11 @@ reports (5001)
 ### practice/identity
 
 - User registration and login
-- JWT issuance
+- JWT issuance (access token + refresh token)
+- Token refresh and logout
+- Role-based access control (`USER` / `ADMIN`)
+- Admin routes: list users, delete user
+- Rate limiting on auth endpoints
 - Zod input validation
 - Default port: 3001
 
@@ -54,8 +62,10 @@ reports (5001)
 - Expenses CRUD
 - Salaries CRUD
 - Monthly summary endpoint
+- Admin endpoint: list all expenses across users
 - Redis cache with invalidation on writes
 - JWT-protected endpoints
+- Rate limiting on write operations
 - Default port: 4001
 
 ### practice/reports
@@ -64,6 +74,7 @@ reports (5001)
 - Calls finance summary endpoint over HTTP
 - Stores a report snapshot in its own DB
 - Idempotent per userId + month + year
+- Rate limiting on report generation
 - Default port: 5001
 
 ## Tech Stack
@@ -75,6 +86,7 @@ reports (5001)
 - Redis
 - JWT
 - Zod
+- pino + pino-caller (structured logging)
 - Microservices Architecture
 - Docker / Docker Compose
 - git/github
@@ -96,8 +108,13 @@ Each service has its own .env file.
 ```env
 DATABASE_URL
 PORT=3001
+NODE_ENV
 AUTH_SECRET
 JWT_EXPIRES_IN
+REFRESH_SECRET
+REFRESH_EXPIRES_IN
+BCRYPT_SALT_ROUNDS
+TZ
 ```
 
 **Finance env:** `practice/finance/.env`
@@ -105,10 +122,14 @@ JWT_EXPIRES_IN
 ```env
 DATABASE_URL
 PORT=4001
+NODE_ENV
 AUTH_SECRET
 REDIS_ENABLED=true|false
 REDIS_URL
 REDIS_PREFIX
+RATE_LIMIT_WINDOW
+RATE_LIMIT_MAX_ATTEMPTS
+TZ
 ```
 
 **Reports env:** `practice/reports/.env`
@@ -118,6 +139,8 @@ DATABASE_URL
 PORT=5001
 AUTH_SECRET
 FINANCE_BASE_URL=http://localhost:4001
+RATE_LIMIT_WINDOW
+RATE_LIMIT_MAX_ATTEMPTS
 ```
 
 ### Local Run
@@ -189,7 +212,8 @@ docker compose up -d --build
 docker compose ps
 ```
 
-In Docker Compose, each service runs its own migration automatically before startup using `npx prisma migrate deploy`.
+In Docker Compose, each service runs its own migration automatically before
+startup using `npx prisma migrate deploy`.
 
 Useful commands:
 
@@ -238,6 +262,13 @@ practice/
   finance/
   reports/
   shared/
+    auth.js              # shared JWT verification + requireRole middleware
+    prismaError.js       # shared Prisma error handler
+    zodError.js          # shared Zod validation error handler
+    logger/
+      logger.js          # pino + pino-caller logger factory
+      requestId.js       # request ID generation
+      requestLogger.js   # per-request logging middleware
 ```
 
 ## Docker Image Optimization
@@ -337,7 +368,6 @@ Requests #2–5 average ~77ms — served entirely from Redis, no DB scan.
 
 - Replace shared JWT secret with asymmetric verification.
 - Add automated tests and CI.
-- Add centralized logging and tracing.
 
 ## Security
 
