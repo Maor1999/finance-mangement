@@ -14,6 +14,7 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY --from=deps /app/prisma ./prisma
 COPY identity/. .
 COPY shared /shared
+RUN ln -s /app/node_modules /shared/node_modules
 
 EXPOSE 3001
 HEALTHCHECK --interval=30s --timeout=3s --start-period=40s --retries=3 \
