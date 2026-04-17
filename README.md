@@ -326,42 +326,65 @@ To measure the real impact of Redis caching, the finance service was benchmarked
 - Endpoint tested: `GET /summary/2025/1`
 - All requests authenticated with a valid JWT Bearer token
 - Docker Compose environment (finance-service + Redis + PostgreSQL containers)
+- Full middleware stack active: structured logging (pino), request ID propagation, rate limiting, RBAC, security hardening (helmet)
+
+### Proof — Raw curl output
+
+**Redis OFF:**
+
+```text
+Request #1: 0.065584s
+Request #2: 0.031264s
+Request #3: 0.026958s
+Request #4: 0.032187s
+Request #5: 0.035067s
+```
+
+**Redis ON:**
+
+```text
+Request #1: 0.248959s
+Request #2: 0.008235s
+Request #3: 0.008671s
+Request #4: 0.008207s
+Request #5: 0.008934s
+```
 
 ### Results — Redis OFF (direct PostgreSQL queries)
 
-| Request | Status | Response Time |
-| ------- | ------ | ------------- |
-| #1 | 200 OK | 698ms |
-| #2 | 200 OK | 131ms |
-| #3 | 200 OK | 106ms |
-| #4 | 200 OK | 108ms |
-| #5 | 200 OK | 103ms |
+| Request | Response Time |
+| ------- | ------------- |
+| #1 | 66ms |
+| #2 | 31ms |
+| #3 | 27ms |
+| #4 | 32ms |
+| #5 | 35ms |
 
 Request #1 is slower due to cold PostgreSQL query planning and connection warm-up.
-Requests #2–5 average ~112ms — each one performs a full DB aggregation scan.
+Requests #2–5 average ~31ms — each one performs a full DB aggregation scan.
 
 ### Results — Redis ON (in-memory cache)
 
-| Request | Status | Response Time |
-| ------- | ------ | ------------- |
-| #1 | 200 OK | 96ms |
-| #2 | 200 OK | 73ms |
-| #3 | 200 OK | 71ms |
-| #4 | 200 OK | 70ms |
-| #5 | 200 OK | 92ms |
+| Request | Response Time |
+| ------- | ------------- |
+| #1 | 249ms |
+| #2 | 8.2ms |
+| #3 | 8.7ms |
+| #4 | 8.2ms |
+| #5 | 8.9ms |
 
-Request #1 is served from a warm cache populated in a previous run.
-Requests #2–5 average ~77ms — served entirely from Redis, no DB scan.
+Request #1 is a true cold cache miss: DB aggregation scan + Redis write overhead.
+Requests #2–5 average ~8.5ms — served entirely from Redis, no DB scan.
 
 ### Summary
 
 | Condition | Cold Request | Avg Requests #2–5 |
 | --------- | ------------ | ----------------- |
-| Redis OFF | 698ms | ~112ms |
-| Redis ON | 96ms | ~77ms |
+| Redis OFF | 66ms | ~31ms |
+| Redis ON | 249ms (cache miss) | ~8.5ms |
 
-- Cold request is **~7× faster** with Redis (698ms → 96ms)
-- Repeated requests are **~31% faster** on average (112ms → 77ms)
+- Repeated requests are **~73% faster** with Redis (31ms → 8.5ms)
+- Cold cache miss is slower than a direct DB hit (249ms vs 66ms) — the first request pays the cost of DB aggregation + Redis write
 - At 240,000 records, skipping the DB aggregation entirely via Redis has a measurable and consistent effect on response time
 
 ## Future Improvements
